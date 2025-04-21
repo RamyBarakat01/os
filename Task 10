@@ -1,0 +1,88 @@
+#include <iostream>
+#include <openssl/des.h>
+#include <cstring>
+#include <ctime>
+#include <vector>
+#include <iomanip>
+
+using namespace std;
+
+// Applies DES encryption 25 times
+string encryptPassword(const string& password, const string& salt16bit) {
+    DES_cblock keyBlock;
+    DES_key_schedule schedule;
+
+    // Create key from salt (first 8 chars only)
+    strncpy((char*)keyBlock, salt16bit.c_str(), 8);
+    DES_set_key_unchecked(&keyBlock, &schedule);
+
+    // Prepare input
+    string input = password;
+    while (input.size() % 8 != 0) {
+        input += ' ';  // pad to 8-byte blocks
+    }
+
+    // Repeatedly apply DES
+    DES_cblock inputBlock, outputBlock;
+    string encrypted = input;
+    for (int i = 0; i < 25; ++i) {
+        for (size_t j = 0; j < encrypted.size(); j += 8) {
+            memcpy(inputBlock, encrypted.c_str() + j, 8);
+            DES_ecb_encrypt(&inputBlock, &outputBlock, &schedule, DES_ENCRYPT);
+            memcpy(&encrypted[j], outputBlock, 8);
+        }
+    }
+
+    // Convert to hex string
+    stringstream hexStream;
+    for (char ch : encrypted) {
+        hexStream << hex << setw(2) << setfill('0') << (int)(unsigned char)ch;
+    }
+    return hexStream.str();
+}
+
+// Random salt generator (16-bit = 2 bytes)
+string generateSalt() {
+    string salt;
+    for (int i = 0; i < 2; ++i) {
+        salt += static_cast<char>('A' + rand() % 26);
+    }
+    return salt;
+}
+
+int main() {
+    srand(time(nullptr));
+    vector<string> encryptedPasswords;
+
+    cout << "Generating 10 Encrypted Passwords:\n";
+    for (int i = 0; i < 10; ++i) {
+        string password = "Password" + to_string(i + 1);
+        string salt = generateSalt();
+        string encrypted = encryptPassword(password, salt);
+
+        cout << "Plain: " << password << " | Salt: " << salt << " | Encrypted: " << encrypted << endl;
+        encryptedPasswords.push_back(encrypted);
+    }
+
+    // Verification demo
+    cout << "\nEnter password to verify: ";
+    string input;
+    cin >> input;
+    cout << "Enter salt used: ";
+    string salt;
+    cin >> salt;
+
+    string enc = encryptPassword(input, salt);
+    cout << "Encrypted input: " << enc << endl;
+
+    bool found = false;
+    for (const string& stored : encryptedPasswords) {
+        if (stored == enc) {
+            found = true;
+            break;
+        }
+    }
+    cout << (found ? "Password match found!" : "No match found.") << endl;
+
+    return 0;
+}
