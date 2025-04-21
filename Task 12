@@ -1,0 +1,148 @@
+#include <iostream>
+#include <map>
+#include <set>
+#include <string>
+
+using namespace std;
+
+// ACL storage: object -> domain -> set of rights
+map<string, map<string, set<char>>> acl;
+
+// Domains and Objects sets
+set<string> domains;
+set<string> objects;
+
+// Add a new domain
+void add_domain(const string& domain) {
+    if (domains.count(domain)) {
+        cout << "⚠️ Domain already exists.\n";
+    } else {
+        domains.insert(domain);
+        cout << "✅ Domain '" << domain << "' added.\n";
+    }
+}
+
+// Add a new object
+void add_object(const string& object) {
+    if (objects.count(object)) {
+        cout << "⚠️ Object already exists.\n";
+    } else {
+        objects.insert(object);
+        cout << "✅ Object '" << object << "' added.\n";
+    }
+}
+
+// Grant rights
+void grant(const string& domain, const string& object, const string& rights) {
+    if (!domains.count(domain) || !objects.count(object)) {
+        cout << "❌ Domain or object not found.\n";
+        return;
+    }
+
+    for (char r : rights) {
+        acl[object][domain].insert(r);
+    }
+
+    cout << "✅ Rights granted.\n";
+}
+
+// Revoke rights
+void revoke(const string& domain, const string& object, const string& rights) {
+    if (!domains.count(domain) || !objects.count(object)) {
+        cout << "❌ Domain or object not found.\n";
+        return;
+    }
+
+    for (char r : rights) {
+        acl[object][domain].erase(r);
+    }
+
+    cout << "✅ Rights revoked.\n";
+}
+
+// Remove domain
+void remove_domain(const string& domain) {
+    if (!domains.erase(domain)) {
+        cout << "❌ Domain not found.\n";
+        return;
+    }
+
+    for (auto& obj : acl) {
+        obj.second.erase(domain);
+    }
+
+    cout << "✅ Domain '" << domain << "' removed.\n";
+}
+
+// Remove object
+void remove_object(const string& object) {
+    if (!objects.erase(object)) {
+        cout << "❌ Object not found.\n";
+        return;
+    }
+
+    acl.erase(object);
+    cout << "✅ Object '" << object << "' removed.\n";
+}
+
+// Show ACL table
+void show_acl() {
+    cout << "\n📄 Current ACL:\n";
+    for (const auto& obj : acl) {
+        cout << "Object: " << obj.first << "\n";
+        for (const auto& entry : obj.second) {
+            cout << "  Domain: " << entry.first << " → Rights: ";
+            for (char r : entry.second)
+                cout << r;
+            cout << "\n";
+        }
+    }
+    cout << endl;
+}
+
+// Command loop
+int main() {
+    string command;
+
+    cout << "🔐 Access Control List Manager\n";
+    cout << "Commands: add_domain, add_object, remove_domain, remove_object, grant, revoke, show, exit\n";
+
+    while (true) {
+        cout << "\n> ";
+        cin >> command;
+
+        if (command == "add_domain") {
+            string d;
+            cin >> d;
+            add_domain(d);
+        } else if (command == "add_object") {
+            string o;
+            cin >> o;
+            add_object(o);
+        } else if (command == "grant") {
+            string d, o, rights;
+            cin >> d >> o >> rights;
+            grant(d, o, rights);
+        } else if (command == "revoke") {
+            string d, o, rights;
+            cin >> d >> o >> rights;
+            revoke(d, o, rights);
+        } else if (command == "remove_domain") {
+            string d;
+            cin >> d;
+            remove_domain(d);
+        } else if (command == "remove_object") {
+            string o;
+            cin >> o;
+            remove_object(o);
+        } else if (command == "show") {
+            show_acl();
+        } else if (command == "exit") {
+            break;
+        } else {
+            cout << "❌ Unknown command.\n";
+        }
+    }
+
+    return 0;
+}
