@@ -1,0 +1,85 @@
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+int main() {
+    int server_fd, new_socket;
+    struct sockaddr_in address;
+    char buffer[BUFFER_SIZE] = {0};
+    
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd == 0) {
+        perror("Socket failed");
+        return 1;
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY; // localhost
+    address.sin_port = htons(PORT);
+
+    bind(server_fd, (struct sockaddr*)&address, sizeof(address));
+    listen(server_fd, 3);
+
+    std::cout << "📡 Waiting for client to connect...\n";
+
+    socklen_t addrlen = sizeof(address);
+    new_socket = accept(server_fd, (struct sockaddr*)&address, &addrlen);
+    std::cout << "✅ Client connected!\n";
+
+    while (true) {
+        memset(buffer, 0, BUFFER_SIZE);
+        read(new_socket, buffer, BUFFER_SIZE);
+        std::cout << "Client: " << buffer << std::endl;
+
+        std::string reply;
+        std::cout << "You: ";
+        std::getline(std::cin, reply);
+        send(new_socket, reply.c_str(), reply.length(), 0);
+    }
+
+    close(server_fd);
+    return 0;
+}
+
+
+
+
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+int main() {
+    int sock = 0;
+    struct sockaddr_in serv_addr;
+    char buffer[BUFFER_SIZE] = {0};
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+    inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr); // Connect to localhost
+
+    connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+    std::cout << "✅ Connected to server!\n";
+
+    while (true) {
+        std::string message;
+        std::cout << "You: ";
+        std::getline(std::cin, message);
+        send(sock, message.c_str(), message.length(), 0);
+
+        memset(buffer, 0, BUFFER_SIZE);
+        read(sock, buffer, BUFFER_SIZE);
+        std::cout << "Server: " << buffer << std::endl;
+    }
+
+    close(sock);
+    return 0;
+}
